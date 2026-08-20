@@ -1,0 +1,47 @@
+#!/bin/bin/tclsh
+
+proc area {lib_file} {
+    set t_area 0
+    while {[gets $lib_file line] != -1} {
+        if {[regexp {cell\s*\((\S+)\)} $line -> cellname]} {
+            set current_cell $cellname
+        }
+        if {[regexp {\s*area\s*:\s*(\S+);} $line -> av] && $current_cell ne ""} {
+            set t_area [expr $t_area+$av]
+            puts "Cell Name: $current_cell Area : $av"
+        }
+    }
+    close $lib_file
+    puts $t_area
+}
+
+proc pins {lib_file} {
+    set pin [dict create]
+    set current_cell ""
+    while {[gets $lib_file line] != -1} {
+        if {[regexp {cell\s*\((\S+)\)} $line -> cellname]} {
+            set current_cell $cellname
+        }
+        if {[regexp {pin\s*\((\S+)\)} $line -> pinname] && $current_cell ne ""} {
+            dict lappend pin $current_cell $pinname
+        }
+    }
+    close $lib_file
+    return $pin
+}
+
+# Execution Block
+set lib_file_path "/process/hosted/modulefiles/PD/pdk/foundries/tsmc/N28/versions/v1.0/stdcells/9T/hvt/lib/ccs/tcbn28hpcplusbwp40p140hvtssg0p81vm40c_ccs.lib"
+
+# Run Area Extraction
+set lib_file [open $lib_file_path r]
+area $lib_file
+
+# Run Pin Mapping Extraction
+set lib_file [open $lib_file_path r]
+set d_pin [pins $lib_file]
+
+# Print Mapping and Count Statistics
+dict for {key value} $d_pin {
+    puts "Cell:$key and it's pins : $value,pin count:[llength $value]"
+}
